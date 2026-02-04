@@ -125,6 +125,10 @@ class Order(MetaTrader5Control):
 
 
 class Signal(MetaTrader5Control):
+    '''
+    信号类，封装了各种信号的生成函数
+    '''
+
     def __init__(self, account: int, password: str, server: str) -> None:
         '''
         初始化信号类

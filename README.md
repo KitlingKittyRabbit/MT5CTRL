@@ -1,0 +1,1 @@
+mt5ctrl.py是封装了各种mt5软件功能的python库，pair_trade.py是用其进行配对交易的示例代码
