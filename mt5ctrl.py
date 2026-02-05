@@ -204,6 +204,8 @@ class Signal(MetaTrader5Control):
                           'M30': mt5.TIMEFRAME_M30, 'H1': mt5.TIMEFRAME_H1, 'H4': mt5.TIMEFRAME_H4, 'D1': mt5.TIMEFRAME_D1}
         timeframe = timeframe_dict[time_frame]
 
+        mt5.symbol_select(categary, True)  # type: ignore
+
         rates = mt5.copy_rates_range(  # type: ignore
             categary, timeframe, start_dt, end_dt)
         df = pd.DataFrame(rates)
