@@ -321,8 +321,23 @@ class Signal(MetaTrader5Control):
             beta: 回归系数
             adf_result: 平稳性检验结果，True表示平稳，False表示不平稳
             z_score: 当前z-score值
+            market_all_open: 市场是否开盘
 
         '''
+        # 比对报价时间与当前时间，判断市场是否开盘
+        market_all_open = True
+        for categary in [categary_a, categary_b]:
+            tick = mt5.symbol_info_tick(categary)  # type: ignore
+            if tick is None:
+                market_all_open = False
+                break
+            tick_time = datetime.fromtimestamp(
+                tick.time, pytz.timezone("Etc/UTC"))
+            now_time = datetime.now(pytz.timezone("Etc/UTC"))
+            time_diff = now_time - tick_time
+            if time_diff > timedelta(minutes=5):
+                market_all_open = False
+                break
 
         # std_threshold必须大于1
         if std_threshold <= 1:
@@ -357,4 +372,4 @@ class Signal(MetaTrader5Control):
         else:
             signal = 'close_positions'
 
-        return {'signal': signal, 'beta': beta, 'adf_result': adf_result, 'z_score': z_score}
+        return {'signal': signal, 'beta': beta, 'adf_result': adf_result, 'z_score': z_score, 'market_all_open': market_all_open}
