@@ -14,7 +14,7 @@ from typing import Dict
 
 class MetaTrader5Control:
     '''
-    MetaTrader5 控制类，封装了 MetaTrader5 的初始化和登录功能
+    MetaTrader5 控制类,封装了 MetaTrader5 的初始化和登录功能
 
     '''
 
@@ -41,7 +41,7 @@ class MetaTrader5Control:
         登录 MetaTrader5 交易账户
 
         return:
-            result: 登录结果，True 表示登录成功，False 表示登录失败
+            result: 登录结果,True 表示登录成功,False 表示登录失败
         '''
 
         result = mt5.initialize(login=self.account,  # type: ignore
@@ -53,7 +53,7 @@ class MetaTrader5Control:
 
 class Order(MetaTrader5Control):
     '''
-    下单类，封装了 MetaTrader5 的下单功能
+    下单类,封装了 MetaTrader5 的下单功能
 
     '''
 
@@ -62,8 +62,8 @@ class Order(MetaTrader5Control):
         初始化下单类
 
         arguments:
-            categary: 交易品种，例如 'EURUSD'
-            direction: 交易方向，'long' 或 'short'
+            categary: 交易品种,例如 'EURUSD'
+            direction: 交易方向,'long' 或 'short'
             lot: 交易手数
             stop_loss: 止损价格
             take_profit: 止盈价格
@@ -114,7 +114,7 @@ class Order(MetaTrader5Control):
             "action": mt5.TRADE_ACTION_DEAL,  # 无关紧要
             "symbol": self.categary,  # 交易品种
             "volume": self.lot,  # 交易量
-            "type": mt5.ORDER_TYPE_BUY if self.direction == 'long' else mt5.ORDER_TYPE_SELL,  # 买单或卖单
+            "type": mt5.ORDER_TYPE_BUY if self.direction == 'short' else mt5.ORDER_TYPE_SELL,  # 买单或卖单
             "position": self.order_number,
         }
 
@@ -126,7 +126,7 @@ class Order(MetaTrader5Control):
 
 class Signal(MetaTrader5Control):
     '''
-    信号类，封装了各种信号的生成函数
+    信号类,封装了各种信号的生成函数
     '''
 
     def __init__(self, account: int, password: str, server: str) -> None:
@@ -145,10 +145,10 @@ class Signal(MetaTrader5Control):
 
     def _time_convert(self, time_tuple: Tuple) -> datetime:
         '''
-        时间转换函数，将时间元组转换为 datetime 对象
+        时间转换函数,将时间元组转换为 datetime 对象
 
         arguments:
-            time_tuple: 时间元组，格式为 (年,月,日,时,分)
+            time_tuple: 时间元组,格式为 (年,月,日,时,分)
 
         return:
             dt: datetime 对象
@@ -160,7 +160,7 @@ class Signal(MetaTrader5Control):
 
     def _get_start_time_without_weekend(self, n_days: int) -> datetime:
         '''
-        获取据现在n天的起始时间，不包含周末
+        获取据现在n天的起始时间,不包含周末
 
         arguments:
             n_days: 距离现在的天数
@@ -170,7 +170,7 @@ class Signal(MetaTrader5Control):
         '''
         now = datetime.now(pytz.timezone("Etc/UTC"))
         start_time = now - timedelta(days=n_days)
-        # 如果起始时间是周末，则调整到最近的工作日
+        # 如果起始时间是周末,则调整到最近的工作日
         while start_time.weekday() >= 5:  # 5 = Saturday, 6 = Sunday
             start_time -= timedelta(days=1)
         return start_time
@@ -181,9 +181,9 @@ class Signal(MetaTrader5Control):
 
         arguments:
             categary: 交易品种
-            start: 起始时间，可以是时间元组或 datetime 对象
-            end: 结束时间，可以是时间元组或 datetime 对象
-            time_frame: 时间周期，'M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'
+            start: 起始时间,可以是时间元组或 datetime 对象
+            end: 结束时间,可以是时间元组或 datetime 对象
+            time_frame: 时间周期,'M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'
 
         return:
             price_series: 价格序列,pd.Series形式返回
@@ -257,9 +257,9 @@ class Signal(MetaTrader5Control):
         arguments:
             categary_a: 交易品种A
             categary_b: 交易品种B
-            time_frame: 时间周期，'M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'
-            start: 起始时间，可以是时间元组或 datetime 对象
-            end: 结束时间，可以是时间元组或 datetime 对象
+            time_frame: 时间周期,'M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'
+            start: 起始时间,可以是时间元组或 datetime 对象
+            end: 结束时间,可以是时间元组或 datetime 对象
 
         return:
             spread_mean: 价差均值
@@ -272,7 +272,7 @@ class Signal(MetaTrader5Control):
         price_series_b = self._get_price_series(
             categary_b, time_frame, start, end)
 
-        # 保持两个序列长度一致，将长序列reindex到短序列长度
+        # 保持两个序列长度一致,将长序列reindex到短序列长度
         if len(price_series_a) > len(price_series_b):
             price_series_a = price_series_a.reindex(
                 price_series_b.index)
@@ -307,26 +307,28 @@ class Signal(MetaTrader5Control):
 
         return spread_mean, spread_std, beta, adf_pvalue
 
-    def pair_trade_signal(self, categary_a: str, categary_b: str, time_frame: Literal['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'], n_days: int, adf_threshold: float = 0.1, std_threshold: float = 1.5) -> Dict[str, Any]:
+    def pair_trade_signal(self, categary_a: str, categary_b: str, time_frame: Literal['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'], n_days: int, adf_threshold: float = 0.1, entry_zscore: float = 1.6, exit_zscore: float = 0.8) -> Dict[str, Any]:
         '''
         配对交易信号函数
 
         arguments:
             categary_a: 交易品种A
             categary_b: 交易品种B
-            time_frame: 时间周期，'M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'
-            adf_threshold: ADF检验阈值,默认为0.1
+            time_frame: 时间周期,'M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'
             n_days: 用于计算价差均值和标准差的天数
+            adf_threshold: ADF检验的p值阈值,默认为0.1
+            entry_zscore: 进场z-score阈值,默认为1.6
+            exit_zscore: 平仓z-score阈值,默认为0.8
 
         return:
-            signal: 交易信号，'long_a,short_b', 'short_a,long_b', 'close_positions'
+            signal: 交易信号,'long_a,short_b', 'short_a,long_b', 'close_positions'
             beta: 回归系数
-            adf_result: 平稳性检验结果，True表示平稳，False表示不平稳
+            adf_result: 平稳性检验结果,True表示平稳,False表示不平稳
             z_score: 当前z-score值
             market_all_open: 市场是否开盘
 
         '''
-        # 比对报价时间与当前时间，判断市场是否开盘
+        # 比对报价时间与当前时间,判断市场是否开盘
         market_all_open = True
         for categary in [categary_a, categary_b]:
             tick = mt5.symbol_info_tick(categary)  # type: ignore
@@ -341,9 +343,9 @@ class Signal(MetaTrader5Control):
                 market_all_open = False
                 break
 
-        # std_threshold必须大于1
-        if std_threshold <= 1:
-            raise ValueError("std_threshold must be greater than 1")
+        # entry_zscore必须大于1
+        if entry_zscore <= 1:
+            raise ValueError("entry_zscore must be greater than 1")
 
         start_time = self._get_start_time_without_weekend(n_days)
         end_time = datetime.now(pytz.timezone("Etc/UTC"))
@@ -367,11 +369,13 @@ class Signal(MetaTrader5Control):
             spread_std if spread_std > 0 else 0
 
         # 生成交易信号
-        if std_threshold < z_score < std_threshold+0.5:
+        if entry_zscore < z_score < entry_zscore+0.5:
             signal = 'long_a,short_b'
-        elif -std_threshold-0.5 < z_score < -std_threshold:
+        elif -entry_zscore-0.5 < z_score < -entry_zscore:
             signal = 'short_a,long_b'
-        else:
+        elif -exit_zscore < z_score < exit_zscore:
             signal = 'close_positions'
+        else:
+            signal = 'no_action'
 
         return {'signal': signal, 'beta': beta, 'adf_result': adf_result, 'z_score': z_score, 'market_all_open': market_all_open}

@@ -23,36 +23,31 @@ while True:
         categary_a, categary_b, 'M1', n_days=n_days)  # type: ignore
     print(pair_trade_signal['adf_result'], pair_trade_signal['z_score'],
           pair_trade_signal['market_all_open'])
-    if pair_trade_signal['adf_result'] and pair_trade_signal['market_all_open']:
-        if pair_trade_signal['signal'] == 'long_a,short_b':
-            print(f"检测到做多{categary_a}，做空{categary_b}信号，开始下单...")
-            order_a = mt5ctrl.Order(categary_a, 'long', lot=round(lot_b*pair_trade_signal['beta'], 2),  # type: ignore
-                                    account=account, server=server, password=password)  # type: ignore
-            order_b = mt5ctrl.Order(
-                categary_b, 'short', lot=lot_b, account=account, server=server, password=password)  # type: ignore
-            while True:
-                pair_trade_signal = signal.pair_trade_signal(
-                    categary_a, categary_b, 'M1', n_days=n_days)  # type: ignore
-                if pair_trade_signal['signal'] == 'close_positions' and pair_trade_signal['market_all_open']:
-                    # 平仓
-                    order_a.close_order()
-                    order_b.close_order()
-                    break
-                time.sleep(6)
+    if pair_trade_signal['adf_result'] and pair_trade_signal['market_all_open'] and (pair_trade_signal['signal'] == 'long_a,short_b' or pair_trade_signal['signal'] == 'short_a,long_b'):
+        print(f"检测到信号:{pair_trade_signal['signal']}，开始下单...")
+        a_direction, b_direction = (
+            'long', 'short') if pair_trade_signal['signal'] == 'long_a,short_b' else ('short', 'long')
+        order_a = mt5ctrl.Order(categary_a, a_direction, lot=round(lot_b*pair_trade_signal['beta'], 2),  # type: ignore
+                                account=account, server=server, password=password)  # type: ignore
+        order_b = mt5ctrl.Order(
+            categary_b, b_direction, lot=lot_b, account=account, server=server, password=password)  # type: ignore
 
-        elif pair_trade_signal['signal'] == 'short_a,long_b':
-            print(f"检测到做空{categary_a}，做多{categary_b}信号，开始下单...")
-            order_a = mt5ctrl.Order(
-                categary_a, 'short', lot=round(lot_b*pair_trade_signal['beta'], 2), account=account, server=server, password=password)  # type: ignore
-            order_b = mt5ctrl.Order(categary_b, 'long', lot=lot_b,  # type: ignore
-                                    account=account, server=server, password=password)  # type: ignore
-            while True:
-                pair_trade_signal = signal.pair_trade_signal(
-                    categary_a, categary_b, 'M1', n_days=n_days)  # type: ignore
-                if pair_trade_signal['signal'] == 'close_positions' and pair_trade_signal['market_all_open']:
-                    # 平仓
-                    order_a.close_order()
-                    order_b.close_order()
-                    break
-                time.sleep(6)
-    time.sleep(10)
+        if order_a.order_number == 0 or order_b.order_number == 0:
+            print("下单失败，重新监控信号...")
+            if order_a.order_number != 0:
+                order_a.close_order()
+            if order_b.order_number != 0:
+                order_b.close_order()
+            time.sleep(1)
+            continue
+
+        while True:
+            pair_trade_signal = signal.pair_trade_signal(
+                categary_a, categary_b, 'M1', n_days=n_days)  # type: ignore
+            if pair_trade_signal['signal'] == 'close_positions' and pair_trade_signal['market_all_open']:
+                # 平仓
+                order_a.close_order()
+                order_b.close_order()
+                break
+            time.sleep(1)
+    time.sleep(1)
