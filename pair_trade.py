@@ -32,11 +32,11 @@ while True:
         order_b = mt5ctrl.Order(
             categary_b, b_direction, lot=lot_b, account=account, server=server, password=password)  # type: ignore
 
-        if order_a.order_number == 0 or order_b.order_number == 0:
+        if order_a.order_number != 10009 or order_b.order_number != 10009:
             print("下单失败，重新监控信号...")
-            if order_a.order_number != 0:
+            if order_a.order_number == 10009:
                 order_a.close_order()
-            if order_b.order_number != 0:
+            if order_b.order_number == 10009:
                 order_b.close_order()
             time.sleep(1)
             continue

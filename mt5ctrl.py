@@ -99,6 +99,7 @@ class Order(MetaTrader5Control):
             result = mt5.order_send(request)  # type: ignore
             print(result)
             self.order_number = result.order
+            self.retcode = result.retcode
         else:
             print("登录失败")
 
@@ -373,7 +374,7 @@ class Signal(MetaTrader5Control):
             signal = 'long_a,short_b'
         elif -entry_zscore-0.5 < z_score < -entry_zscore:
             signal = 'short_a,long_b'
-        elif -exit_zscore < z_score < exit_zscore:
+        elif -exit_zscore < z_score < exit_zscore or z_score > entry_zscore + 0.5 or z_score < -entry_zscore - 0.5:
             signal = 'close_positions'
         else:
             signal = 'no_action'
