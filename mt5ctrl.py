@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.stattools import adfuller
-from sklearn.linear_model import LinearRegression  # type: ignore
+from sklearn.linear_model import LinearRegression, HuberRegressor  # type: ignore
 from typing import Any, Union
 from typing import List
 from typing import Tuple
@@ -316,7 +316,8 @@ class Signal(MetaTrader5Control):
         X = np.array(series_a).reshape(-1, 1)
         y = np.array(series_b)
 
-        model = LinearRegression()
+        # 使用 Huber 稳健回归替代普通最小二乘法(OLS)，降低极端值对 Beta 的干扰
+        model = HuberRegressor()
         model.fit(X, y)
         beta = model.coef_[0]
 
@@ -383,7 +384,8 @@ class Signal(MetaTrader5Control):
 
     def _pair_trade_signal_at_time(self, category_a: str, category_b: str, time_frame: Literal['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'S1'],
                                    n_days: int, current_time: datetime, price_a: float, price_b: float,
-                                   adf_threshold: float = 0.1, entry_zscore: float = 1.6, exit_zscore: float = 0.8, skip_weekend: bool = True) -> Dict[str, Any]:
+                                   adf_threshold: float = 0.1, min_entry_zscore: float = 1.6, take_profit_zscore: float = 0.8, skip_weekend: bool = True,
+                                   max_entry_zscore: float = 2.1, stop_loss_zscore: float = 2.2) -> Dict[str, Any]:
         '''
         在指定时间点计算配对交易信号(用于回测)
 
@@ -396,9 +398,11 @@ class Signal(MetaTrader5Control):
             price_a: 品种A的当前价格
             price_b: 品种B的当前价格
             adf_threshold: ADF检验的p值阈值,默认为0.1
-            entry_zscore: 进场z-score阈值,默认为1.6
-            exit_zscore: 平仓z-score阈值,默认为0.8
+            min_entry_zscore: 最小进场z-score阈值,默认为1.6
+            take_profit_zscore: 止盈z-score阈值,默认为0.8
             skip_weekend: 是否跳过周末,True表示计算工作日,False表示计算自然日(适用于周末不休盘的品种如加密货币)
+            max_entry_zscore: 最大进场z-score阈值,默认为2.1
+            stop_loss_zscore: 止损z-score阈值,默认为2.2
 
         return:
             signal: 交易信号,'long_a,short_b', 'short_a,long_b', 'take_profit', 'stop_loss' 或 'no_action'
@@ -406,9 +410,9 @@ class Signal(MetaTrader5Control):
             adf_result: 平稳性检验结果,True表示平稳,False表示不平稳
             z_score: 当前z-score值
         '''
-        # entry_zscore必须大于1
-        if entry_zscore <= 1:
-            raise ValueError("entry_zscore must be greater than 1")
+        # min_entry_zscore必须大于1
+        if min_entry_zscore <= 1:
+            raise ValueError("min_entry_zscore must be greater than 1")
 
         # 计算历史数据的起始时间
         start_time = self._get_start_time(n_days, current_time, skip_weekend)
@@ -426,21 +430,21 @@ class Signal(MetaTrader5Control):
         z_score = (current_spread - spread_mean) / \
             spread_std if spread_std > 0 else 0
 
-        # 生成交易信号(开仓与平仓间隔0.1个标准差,防止频繁交易)
-        if entry_zscore < z_score < entry_zscore+0.5:
+        # 生成交易信号(开仓与平仓间隔一定标准差,防止频繁交易)
+        if min_entry_zscore < z_score < max_entry_zscore:
             signal = 'long_a,short_b'
-        elif -entry_zscore-0.5 < z_score < -entry_zscore:
+        elif -max_entry_zscore < z_score < -min_entry_zscore:
             signal = 'short_a,long_b'
-        elif -exit_zscore < z_score < exit_zscore:
+        elif -take_profit_zscore < z_score < take_profit_zscore:
             signal = 'take_profit'
-        elif z_score > entry_zscore + 0.6 or z_score < -entry_zscore - 0.6:
+        elif z_score > stop_loss_zscore or z_score < -stop_loss_zscore:
             signal = 'stop_loss'
         else:
             signal = 'no_action'
 
         return {'signal': signal, 'beta': beta, 'adf_result': adf_result, 'z_score': z_score}
 
-    def pair_trade_signal(self, category_a: str, category_b: str, time_frame: Literal['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'S1'], n_days: int, adf_threshold: float = 0.1, entry_zscore: float = 1.6, exit_zscore: float = 0.8, skip_weekend: bool = True) -> Dict[str, Any]:
+    def pair_trade_signal(self, category_a: str, category_b: str, time_frame: Literal['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'S1'], n_days: int, adf_threshold: float = 0.1, min_entry_zscore: float = 1.6, take_profit_zscore: float = 0.8, skip_weekend: bool = True, max_entry_zscore: float = 2.1, stop_loss_zscore: float = 2.2) -> Dict[str, Any]:
         '''
         配对交易信号函数
 
@@ -450,9 +454,11 @@ class Signal(MetaTrader5Control):
             time_frame: 时间周期,'M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'S1'
             n_days: 用于计算价差均值和标准差的天数(如果skip_weekend=True则为工作日天数)
             adf_threshold: ADF检验的p值阈值,默认为0.1
-            entry_zscore: 进场z-score阈值,默认为1.6
-            exit_zscore: 平仓z-score阈值,默认为0.8
+            min_entry_zscore: 最小进场z-score阈值,默认为1.6
+            take_profit_zscore: 止盈z-score阈值,默认为0.8
             skip_weekend: 是否跳过周末,True表示计算工作日,False表示计算自然日(适用于周末不休盘的品种如加密货币)
+            max_entry_zscore: 最大进场z-score阈值,默认为2.1
+            stop_loss_zscore: 止损z-score阈值,默认为2.2
 
         return:
             signal: 交易信号,'long_a,short_b', 'short_a,long_b', 'take_profit', 'stop_loss' 或 'no_action'
@@ -485,7 +491,7 @@ class Signal(MetaTrader5Control):
         # 调用内部函数计算信号
         result = self._pair_trade_signal_at_time(
             category_a, category_b, time_frame, n_days, current_time, price_a, price_b,
-            adf_threshold, entry_zscore, exit_zscore, skip_weekend)
+            adf_threshold, min_entry_zscore, take_profit_zscore, skip_weekend, max_entry_zscore, stop_loss_zscore)
         result['market_all_open'] = market_all_open
 
         return result
@@ -512,8 +518,9 @@ class Backtest(MetaTrader5Control):
         self.S = Signal(account, password, server)
 
     def genarate_bs_point4pair_trade(self, category_a: str, category_b: str, signal_timeframe: Literal['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'], n_days: int,
-                                     start_time: Union[Tuple, datetime], end_time: Union[Tuple, datetime], adf_threshold: float = 0.1, entry_zscore: float = 1.6,
-                                     exit_zscore: float = 0.8, skip_weekend: bool = True, trading_timeframe: Literal['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'S1'] = 'S1') -> pd.DataFrame:
+                                     start_time: Union[Tuple, datetime], end_time: Union[Tuple, datetime], adf_threshold: float = 0.1, min_entry_zscore: float = 1.6,
+                                     take_profit_zscore: float = 0.8, skip_weekend: bool = True, trading_timeframe: Literal['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'S1'] = 'S1',
+                                     max_entry_zscore: float = 2.1, stop_loss_zscore: float = 2.2) -> pd.DataFrame:
         '''
         生成配对交易的开平点数据
 
@@ -525,10 +532,12 @@ class Backtest(MetaTrader5Control):
             start_time: 回测的起始时间,可以是时间元组或 datetime 对象
             end_time: 回测的结束时间,可以是时间元组或 datetime 对象
             adf_threshold: ADF检验的p值阈值,默认为0.1
-            entry_zscore: 进场z-score阈值,默认为1.6
-            exit_zscore: 平仓z-score阈值,默认为0.8
+            min_entry_zscore: 最小进场z-score阈值,默认为1.6
+            take_profit_zscore: 止盈z-score阈值,默认为0.8
             skip_weekend: 是否跳过周末,True表示计算工作日,False表示计算自然日(适用于周末不休盘的品种如加密货币)
             trading_timeframe: 交易执行时间周期(生成买卖点的时间粒度),默认'S1'
+            max_entry_zscore: 最大进场z-score阈值,默认为2.1
+            stop_loss_zscore: 止损z-score阈值,默认为2.2
 
         return:
             bs_point: 开平点数据,包含以下列:
@@ -704,14 +713,14 @@ class Backtest(MetaTrader5Control):
                 ratio_a = 1 / denominator
                 ratio_b = beta_abs / denominator
 
-            # 生成交易信号(开仓与平仓间隔0.1个标准差,防止频繁交易)
-            if entry_zscore < z_score < entry_zscore+0.5:
+            # 生成交易信号(开仓与平仓间隔一定标准差,防止频繁交易)
+            if min_entry_zscore < z_score < max_entry_zscore:
                 signal = 'long_a,short_b'
-            elif -entry_zscore-0.5 < z_score < -entry_zscore:
+            elif -max_entry_zscore < z_score < -min_entry_zscore:
                 signal = 'short_a,long_b'
-            elif -exit_zscore < z_score < exit_zscore:
+            elif -take_profit_zscore < z_score < take_profit_zscore:
                 signal = 'take_profit'
-            elif z_score > entry_zscore + 0.6 or z_score < -entry_zscore - 0.6:
+            elif z_score > stop_loss_zscore or z_score < -stop_loss_zscore:
                 signal = 'stop_loss'
             else:
                 signal = 'no_action'
