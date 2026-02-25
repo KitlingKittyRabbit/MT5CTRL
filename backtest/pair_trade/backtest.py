@@ -38,8 +38,10 @@ start_time = parse_dt(get_env("BACKTEST_START_TIME"))
 end_time = parse_dt(get_env("BACKTEST_END_TIME"))
 
 adf_threshold = float(get_env("BACKTEST_ADF_THRESHOLD"))
-entry_zscore = float(get_env("BACKTEST_ENTRY_ZSCORE"))
-exit_zscore = float(get_env("BACKTEST_EXIT_ZSCORE"))
+min_entry_zscore = float(get_env("BACKTEST_MIN_ENTRY_ZSCORE"))
+take_profit_zscore = float(get_env("BACKTEST_TAKE_PROFIT_ZSCORE"))
+max_entry_zscore = float(get_env("BACKTEST_MAX_ENTRY_ZSCORE"))
+stop_loss_zscore = float(get_env("BACKTEST_STOP_LOSS_ZSCORE"))
 skip_weekend = parse_bool(get_env("BACKTEST_SKIP_WEEKEND"))
 
 principal = float(get_env("BACKTEST_PRINCIPAL"))
@@ -71,10 +73,12 @@ bs_point = backtester.genarate_bs_point4pair_trade(
     start_time=start_time,
     end_time=end_time,
     adf_threshold=adf_threshold,
-    entry_zscore=entry_zscore,
-    exit_zscore=exit_zscore,
+    min_entry_zscore=min_entry_zscore,
+    take_profit_zscore=take_profit_zscore,
     skip_weekend=skip_weekend,
     trading_timeframe=trading_timeframe,  # type: ignore[arg-type]
+    max_entry_zscore=max_entry_zscore,
+    stop_loss_zscore=stop_loss_zscore,
 )
 
 print("开始执行回测...")

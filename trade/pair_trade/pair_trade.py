@@ -29,8 +29,10 @@ lot_b = float(get_env("PAIR_TRADE_LOT_B"))
 
 timeframe = get_env("PAIR_TRADE_TIMEFRAME")
 adf_threshold = float(get_env("PAIR_TRADE_ADF_THRESHOLD"))
-entry_zscore = float(get_env("PAIR_TRADE_ENTRY_ZSCORE"))
-exit_zscore = float(get_env("PAIR_TRADE_EXIT_ZSCORE"))
+min_entry_zscore = float(get_env("PAIR_TRADE_MIN_ENTRY_ZSCORE"))
+take_profit_zscore = float(get_env("PAIR_TRADE_TAKE_PROFIT_ZSCORE"))
+max_entry_zscore = float(get_env("PAIR_TRADE_MAX_ENTRY_ZSCORE"))
+stop_loss_zscore = float(get_env("PAIR_TRADE_STOP_LOSS_ZSCORE"))
 skip_weekend = parse_bool(get_env("PAIR_TRADE_SKIP_WEEKEND"))
 
 signal = mt5ctrl.Signal(account=account, password=password,  # type: ignore
@@ -50,9 +52,11 @@ while True:
         timeframe,  # type: ignore[arg-type]
         n_days=n_days,
         adf_threshold=adf_threshold,
-        entry_zscore=entry_zscore,
-        exit_zscore=exit_zscore,
+        min_entry_zscore=min_entry_zscore,
+        take_profit_zscore=take_profit_zscore,
         skip_weekend=skip_weekend,
+        max_entry_zscore=max_entry_zscore,
+        stop_loss_zscore=stop_loss_zscore,
     )
     print(pair_trade_signal['adf_result'], pair_trade_signal['z_score'],
           pair_trade_signal['market_all_open'])
@@ -85,9 +89,11 @@ while True:
                 timeframe,  # type: ignore[arg-type]
                 n_days=n_days,
                 adf_threshold=adf_threshold,
-                entry_zscore=entry_zscore,
-                exit_zscore=exit_zscore,
+                min_entry_zscore=min_entry_zscore,
+                take_profit_zscore=take_profit_zscore,
                 skip_weekend=skip_weekend,
+                max_entry_zscore=max_entry_zscore,
+                stop_loss_zscore=stop_loss_zscore,
             )
             if pair_trade_signal['signal'] == 'take_profit' and pair_trade_signal['market_all_open']:
                 # 平仓
