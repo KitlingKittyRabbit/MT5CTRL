@@ -1,2 +1,7 @@
-__pycache__/mt5ctrl.cpython-38.pyc
-__pycache__/mt5ctrl.cpython-311.pyc
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.env
+**/.env

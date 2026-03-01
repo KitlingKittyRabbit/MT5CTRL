@@ -5,11 +5,12 @@ import pandas as pd
 import numpy as np
 from statsmodels.tsa.stattools import adfuller
 from sklearn.linear_model import LinearRegression, HuberRegressor  # type: ignore
-from typing import Any, Union
+from typing import Any, Sequence, SupportsFloat, Union
 from typing import List
 from typing import Tuple
 from typing import Literal
 from typing import Dict
+from numpy.typing import NDArray as np_1darray
 
 
 class MetaTrader5Control:
@@ -301,7 +302,7 @@ class Signal(MetaTrader5Control):
 
         return pvalue
 
-    def _regression_coeff(self, series_a: List[float], series_b: List[float]) -> float:
+    def _regression_coeff(self, series_a: Sequence[SupportsFloat], series_b: Sequence[SupportsFloat]) -> float:
         '''
         回归系数计算函数,计算品种A对品种B的回归系数
 
@@ -313,8 +314,8 @@ class Signal(MetaTrader5Control):
             beta: 回归系数
         '''
 
-        X = np.array(series_a).reshape(-1, 1)
-        y = np.array(series_b)
+        X = np.array(series_a, dtype=float).reshape(-1, 1)
+        y = np.array(series_b, dtype=float)
 
         # 使用 Huber 稳健回归替代普通最小二乘法(OLS)，降低极端值对 Beta 的干扰
         model = HuberRegressor()
@@ -330,7 +331,7 @@ class Signal(MetaTrader5Control):
         arguments:
             category_a: 交易品种A
             category_b: 交易品种B
-            time_frame: 时间周期,'M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1'
+            time_frame: 时间周期,'M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'S1'
             start: 起始时间,可以是时间元组或 datetime 对象
             end: 结束时间,可以是时间元组或 datetime 对象
 
@@ -625,12 +626,15 @@ class Backtest(MetaTrader5Control):
                 spread_stds.append(np.nan)
                 adf_pvalues.append(1.0)
             else:
-                window_a = signal_df[price_col_a].iloc[i-window_size:i].values
-                window_b = signal_df[price_col_b].iloc[i-window_size:i].values
+                window_a = signal_df[price_col_a].to_numpy(dtype=float)[i-window_size:i]
+                window_b = signal_df[price_col_b].to_numpy(dtype=float)[i-window_size:i]
+                a_list = [float(x) for x in window_a.tolist()]
+                b_list = [float(x) for x in window_b.tolist()]
+                
 
                 # 计算beta
                 beta = self.S._regression_coeff(
-                    window_a.tolist(), window_b.tolist())
+                    a_list, b_list)
 
                 # 计算价差
                 spread = window_b - beta * window_a
@@ -683,7 +687,7 @@ class Backtest(MetaTrader5Control):
         for idx, (timestamp, row) in enumerate(df.iterrows()):
             # 找到最近的signal时间点
             signal_idx = signal_df.index.searchsorted(
-                timestamp, side='right') - 1
+                timestamp, side='right') - 1 # type: ignore
 
             if signal_idx < 0 or signal_idx >= len(signal_df):
                 continue
