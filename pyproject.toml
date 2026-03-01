@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mt5ctrl"
+version = "0.1.0"
+description = "LangChain + MetaTrader5 control utilities"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{ name = "Tingyu Zhang", email = "3405807169@qq.com" }]
+license = { file = "LICENSE" }
+dependencies = [
+  "pandas",
+  "numpy",
+  "pytz",
+  "MetaTrader5",
+  "statsmodels",
+  "scikit-learn",
+  "python-dotenv"
+]
+
+[tool.setuptools]
+py-modules = ["mt5ctrl"]
